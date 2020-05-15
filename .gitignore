@@ -131,3 +131,5 @@ dmypy.json
 # dataset
 .dataset/train_ws_ver1.tsv
 .dataset/test_ws_ver1.tsv
+.dataset/train_ws_ver2.tsv
+.dataset/test_ws_ver2.tsv

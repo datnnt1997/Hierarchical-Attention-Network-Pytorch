@@ -23,7 +23,7 @@ def save_checkpoint(save_dir, model, epoch, loss, metric, conf_metrix, f1_score)
     f.write("=" * 30 + "CLASS METRIC" + "=" * 30)
     f.write(metric)
     f.write("=" * 30 + "CONFUSION MATRIX" + "=" * 30)
-    f.write(conf_metrix)
+    f.write(str(conf_metrix))
     f.close()
     print("saved model at epoch %d" % epoch)
 
@@ -52,6 +52,10 @@ def main(opts):
                 pad_idx=pad_idx,
                 init_weight=opts.init_weight, device=device,
                 vectors=vectors)
+
+    if opts.pretrain_model_dir is not None:
+        model_checkpoint = torch.load(opts.pretrain_model_dir+"/model.model")
+        model.load_state_dict(model_checkpoint)
 
     print("=" * 30 + "MODEL SUMMARY" + "=" * 30)
     print(model)
@@ -101,7 +105,7 @@ def main(opts):
             total_epoch_loss = 0
             predicts = []
             actuals = []
-            model.train()
+            model.eval()
             tqdm_bar = tqdm(enumerate(valid_iter), total=len(valid_iter), desc="Valid")
             for idx, batch in tqdm_bar:
                 optimizer.zero_grad()
@@ -119,6 +123,7 @@ def main(opts):
         macro_f1_score = metrics.f1_score(actuals, predicts, average="macro")
         print(metric)
         print("Confusion Matrix:")
+        print("")
         print(conf_matrix)
         print("VALID Macro F1 score: " + str(macro_f1_score))
         print("VALID Accurancy score: " + str(acc_score))
@@ -134,6 +139,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--train_file", type=str, default="data/train.tsv", help="Path to the training file.")
     parser.add_argument("--valid_file", type=str, default="data/test.tsv", help="Path to the validation file.")
+    parser.add_argument("--pretrain_model_dir", type=str, default=None, help="Path to the pre-train model directory.")
     parser.add_argument("--pretrain_embedding_file", type=str, default="data/word2vec.300d.txt",
                         help="Pre-train embeddings file.")
     parser.add_argument("--lang", type=str, default="vi", choices=['vi', 'en'],

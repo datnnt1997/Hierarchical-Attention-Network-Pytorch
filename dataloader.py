@@ -52,6 +52,14 @@ def load_data(train_file, test_file, pretrain=None, save_dir=None):
                       "class": label_field.vocab.itos,
                       'pad_idx': pad_idx}
             json.dump(vocabs, fv)
+            fv.close()
+        with open(save_dir + "/fileds.json", "w", encoding="utf-8") as ff:
+            field_vocabs = {
+                "doc": doc_field.vocab.freqs,
+                "label": label_field.vocab.freqs
+            }
+            json.dump(field_vocabs, ff)
+            ff.close()
     print("=" * 73)
     return train_dataset, test_dataset, num_vocab, num_classes, pad_idx, vectors.vectors
 
