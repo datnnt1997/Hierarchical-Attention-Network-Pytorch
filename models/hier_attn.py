@@ -12,8 +12,8 @@ class HAN(nn.Module):
         self.device = device
 
         self.emb_lut = nn.Embedding(num_vocab, embedd_dim, pad_idx)
-        if vectors:
-            self.emb_lut.from_pretrained(embeddings=vectors, freeze=False, )
+        if vectors is not None:
+            self.emb_lut.from_pretrained(embeddings=vectors, freeze=False, padding_idx=pad_idx)
         else:
             nn.init.uniform_(self.emb_lut.weight.data, -init_weight, init_weight)
 

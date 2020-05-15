@@ -23,6 +23,7 @@ def save_checkpoint(save_dir, model, epoch, loss, metric, f1_score):
     f.close()
     print("saved model at epoch %d" % epoch)
 
+
 def main(opts):
     if opts.device:
         device = opts.device
@@ -34,9 +35,9 @@ def main(opts):
     if not os.path.exists(opts.log_path):
         os.makedirs(opts.log_path)
 
-    train_dataset, valid_dataset, num_vocab, num_classes, pad_idx = load_data(train_file=opts.train_file,
-                                                                             test_file=opts.valid_file,
-                                                                             save_dir=opts.saved_dir)
+    train_dataset, valid_dataset, num_vocab, num_classes, pad_idx, vectors = load_data(train_file=opts.train_file,
+                                                                                       test_file=opts.valid_file,
+                                                                                       save_dir=opts.saved_dir)
     model = HAN(word_hidden_size=opts.word_hidden_size,
                 sent_hidden_size=opts.sent_hidden_size,
                 word_attn_size=opts.word_attn_size,
@@ -46,7 +47,7 @@ def main(opts):
                 embedd_dim=opts.word_vec_size,
                 pad_idx=pad_idx,
                 init_weight=opts.init_weight, device=device,
-                vectors=None)
+                vectors=vectors)
 
     print("=" * 30 + "MODEL SUMMARY" + "=" * 30)
     print(model)
@@ -56,8 +57,11 @@ def main(opts):
         model.cuda()
 
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, model.parameters()),
-                                lr=opts.lr, momentum=opts.momentum)
+    if opts.optim == "adam":
+        optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=opts.lr)
+    elif opts.optim == "sgd":
+        optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, model.parameters()),
+                                    lr=opts.lr, momentum=opts.momentum)
     best_score = float('-inf')
     train_iter = build_iterator(train_dataset, batch_size=opts.batch_size, device=device, is_train=True)
     valid_iter = build_iterator(valid_dataset, batch_size=opts.batch_size, device=device, is_train=False)
@@ -126,8 +130,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--train_file", type=str, default="data/train.tsv", help="Path to the training file.")
     parser.add_argument("--valid_file", type=str, default="data/test.tsv", help="Path to the validation file.")
-    parser.add_argument("--word2vec_path", type=str, default="data/word2vec.300d.txt", help="Pre-train LM model.")
-    parser.add_argument("--lang", type=str, default="vi", help="Language used for Pre-train LM model.")
+    parser.add_argument("--pretrain_embedding_file", type=str, default="data/word2vec.300d.txt",
+                        help="Pre-train embeddings file.")
+    parser.add_argument("--lang", type=str, default="vi", choices=['vi', 'en'],
+                        help="Language used for Pre-train embeddings model.")
 
     parser.add_argument("--word_vec_size", type=int, default=300, help="Word embedding size.")
     parser.add_argument("--word_hidden_size", type=int, default=100, help="Size of word RNN hidden states.")
@@ -138,15 +144,17 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=16, help="Maximum batch size for training.")
     parser.add_argument("--num_epoches", type=int, default=100, help="Number of training epoches.")
     parser.add_argument("--lr", type=float, default=0.1, help="Learning rate for training.")
+    parser.add_argument("--optim", type=str, default='sgd', choices=['sgd', 'adam'], help="Optimization method.")
     parser.add_argument("--momentum", type=float, default=0.9)
     parser.add_argument("--init_weight", type=float, default=0.1,
                         help="Parameters are initialized over uniform distribution with support "
                              "(-init_weight, init_weight)")
     parser.add_argument("--valid_interval", type=int, default=1, help="Number of epoches between testing phases.")
 
-    parser.add_argument("--log_path", type=str, default="tensorboard/han_voc",
+    parser.add_argument("--log_path", type=str, default="outputs/logs",
                         help="Output logs to a file under this path.")
     parser.add_argument("--saved_dir", type=str, default="outputs")
-    parser.add_argument("--device", type=str, default=None, help="Device('cpu', 'cuda') for training phases.")
+    parser.add_argument("--device", type=str, default=None, choices=['cpu', 'cuda', None],
+                        help="Device for training phases.")
     args = parser.parse_args()
     main(args)
