@@ -8,18 +8,22 @@ from sklearn import metrics
 from tqdm import tqdm
 
 
-def save_checkpoint(save_dir, model, epoch, loss, metric, f1_score):
+def save_checkpoint(save_dir, model, epoch, loss, metric, conf_metrix, f1_score):
     file_model = os.path.join(save_dir, "model.model")
     file_infor = os.path.join(save_dir, "summary.txt")
     print("saving %s" % file_model)
     torch.save(model.state_dict(), file_model)
     f = open(file_infor, 'w', encoding="utf-8")
+    f.write("=" * 30 + "STATISTITCALS" + "=" * 30)
     f.write("File model: {}\n".format(file_model))
     f.write("Epoch: {}\n".format(epoch))
     f.write("Loss: {}\n".format(loss))
     f.write("Evaluation: \n")
     f.write("F1 score: {}\n".format(f1_score))
+    f.write("=" * 30 + "CLASS METRIC" + "=" * 30)
     f.write(metric)
+    f.write("=" * 30 + "CONFUSION MATRIX" + "=" * 30)
+    f.write(conf_metrix)
     f.close()
     print("saved model at epoch %d" % epoch)
 
@@ -121,7 +125,7 @@ def main(opts):
         print("VALID LOSS: {}".format(total_epoch_loss / len(train_iter)))
 
         if macro_f1_score > best_score:
-            save_checkpoint(opts.saved_dir, model, epoch, loss, metric, macro_f1_score)
+            save_checkpoint(opts.saved_dir, model, epoch, loss, metric, conf_matrix, macro_f1_score)
             best_score = macro_f1_score
     return best_score
 
